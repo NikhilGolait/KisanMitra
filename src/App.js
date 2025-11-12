@@ -511,7 +511,7 @@ export default function App() {
 
     setSending(true);
     try {
-      const res = await fetch("http://localhost:5000/api/send-sms", {
+      const res = await fetch("https://agrisense-17.onrender.com/api/send-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, cropInfo }),
