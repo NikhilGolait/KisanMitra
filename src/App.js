@@ -219,7 +219,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [suitableCrops, setSuitableCrops] = useState([]);
   const [fertilizerInfo, setFertilizerInfo] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [showSmsCard, setShowSmsCard] = useState(false);
   const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
