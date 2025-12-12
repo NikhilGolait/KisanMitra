@@ -219,7 +219,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [suitableCrops, setSuitableCrops] = useState([]);
   const [fertilizerInfo, setFertilizerInfo] = useState([]);
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showSmsCard, setShowSmsCard] = useState(false);
   const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
@@ -551,9 +551,8 @@ export default function App() {
         <header className="header">
           <div className="navbar">
             <div className="brand">
-              <h1 className="brand-title">AgriSense</h1>
+              <h1 className="brand-title">KisanMitra</h1>
             </div>
-
             <div className="search-container">
               <div className="search-box">
                 <input
@@ -832,7 +831,7 @@ export default function App() {
                     borderRadius: "0 0 12px 12px",
                     width: "100%",
                   }}
-                  title="Gemini AI"
+                  title="AI"
                 />
               </div>
             </motion.div>
@@ -843,6 +842,7 @@ export default function App() {
 
         <main className="main-grid">
           <section className="main-section">
+            
             {/* Weather Chart */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -951,7 +951,7 @@ export default function App() {
           </aside>
         </main>
 
-        <footer className="footer">AgriSense © 2025</footer>
+        <footer className="footer">KisanMitra © 2025</footer>
       </div>
     </div>
   );

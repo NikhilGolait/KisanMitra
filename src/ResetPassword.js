@@ -50,8 +50,8 @@ export default function ResetPassword({ onBackClick }) {
   return (
     <div className="auth-page">
       <div className="auth-box">
-        <h1 className="brand-title">🌾 AgriSense</h1>
-        <p className="brand-subtitle">Smart Farming | Live Climate Insights</p>
+        <h1 className="brand-title">KisanMitra</h1>
+        <p className="brand-subtitle">Smart Farming </p>
 
         <h2 className="auth-heading">Reset Password</h2>
         {message && <p className="auth-message">{message}</p>}
