@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -208,9 +208,9 @@ export default function App() {
 
   // Include isValid flag in location
   const [location, setLocation] = useState({
-    lat: 27.1458,
-    lon: 78.0882,
-    name: "Default Location",
+    lat: 20.9374,
+    lon: 77.7796,
+    name: "Amravati, Maharashtra",
     isValid: true, // default valid for the default coords
   });
 
@@ -219,11 +219,16 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [suitableCrops, setSuitableCrops] = useState([]);
   const [fertilizerInfo, setFertilizerInfo] = useState([]);
+  // Real-time hardware sensor placeholders (will be populated by device)
+  const [soilMoisture, setSoilMoisture] = useState(0);
+  const [soilPH, setSoilPH] = useState(0);
+  const [wind, setWind] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showSmsCard, setShowSmsCard] = useState(false);
   const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showAboutDev, setShowAboutDev] = useState(false);
   const [smsMode, setSmsMode] = useState(null); // null, "manual", or "saved"
 
   // Fetch weather (unchanged)
@@ -256,11 +261,32 @@ export default function App() {
 
         setData({ latest, history: chartData });
 
-        const crops = getCropsByClimate(
-          latest.temperature,
-          latest.humidity,
-          latest.rainfall
-        );
+        // compute crops using weather + (placeholder) sensor values
+        const computeSuitableCrops = (latestMetrics, soilMoistureVal, soilPHVal, windVal) => {
+          if (!latestMetrics) return [];
+          let base = getCropsByClimate(latestMetrics.temperature, latestMetrics.humidity, latestMetrics.rainfall);
+
+          // Adjustments based on sensor readings (simple heuristics)
+          // Low soil moisture -> favor drought-tolerant crops
+          if (soilMoistureVal < 20) {
+            base = Array.from(new Set([...base, "Millets", "Sorghum", "Cotton"]));
+          }
+          // Acidic soil favors rice/jute in some cases
+          if (soilPHVal && soilPHVal < 6) {
+            base = Array.from(new Set([...base, "Rice", "Jute"]));
+          }
+          // Alkaline soil favors certain crops
+          if (soilPHVal && soilPHVal > 7.5) {
+            base = Array.from(new Set([...base, "Barley", "Cotton"]));
+          }
+          // High wind reduces suitability for tall, heavy crops
+          if (windVal > 20) {
+            base = base.filter((c) => c !== "Sugarcane");
+          }
+          return base;
+        };
+
+        const crops = computeSuitableCrops(latest, soilMoisture, soilPH, wind);
         setSuitableCrops(crops);
         setFertilizerInfo(getFertilizersAndPesticides(crops));
 
@@ -298,6 +324,39 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.lat, location.lon, location.isValid]);
+
+  // Recompute suitable crops whenever sensor values or fetched weather change
+  useEffect(() => {
+    if (!data || !data.latest) return;
+    const computeSuitableCrops = (latestMetrics, soilMoistureVal, soilPHVal, windVal) => {
+      if (!latestMetrics) return [];
+      let base = getCropsByClimate(latestMetrics.temperature, latestMetrics.humidity, latestMetrics.rainfall);
+
+      if (soilMoistureVal < 20) base = Array.from(new Set([...base, "Millets", "Sorghum", "Cotton"]));
+      if (soilPHVal && soilPHVal < 6) base = Array.from(new Set([...base, "Rice", "Jute"]));
+      if (soilPHVal && soilPHVal > 7.5) base = Array.from(new Set([...base, "Barley", "Cotton"]));
+      if (windVal > 20) base = base.filter((c) => c !== "Sugarcane");
+      return base;
+    };
+
+    const crops = computeSuitableCrops(data.latest, soilMoisture, soilPH, wind);
+    setSuitableCrops(crops);
+    setFertilizerInfo(getFertilizersAndPesticides(crops));
+  }, [data, soilMoisture, soilPH, wind]);
+
+  // Randomized market price data for Oranges (placeholder)
+  const priceData = useMemo(() => {
+    const arr = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const label = `${date.getMonth() + 1}/${date.getDate()}`;
+      // random price between 25 and 60 INR per kg
+      const price = Math.round((25 + Math.random() * 35) * 100) / 100;
+      arr.push({ date: label, price });
+    }
+    return arr;
+  }, [location.lat, location.lon]);
 
   // Handle map click: set isValid and placeholders if invalid
   const handleMapClick = async (newLoc) => {
@@ -570,16 +629,19 @@ export default function App() {
 
             <div className="nav-actions">
               <button onClick={useMyLocation} className="btn green">
-                📍 Use My Location
+                Use My Location
               </button>
               <button
                 onClick={() => setShowAiModal(true)}
                 className="btn blue"
               >
-                🤖 AI
+                AI
               </button>
-              <button onClick={() => setShowSmsCard(true)} className="btn orange">
-                📩 Get Crop Info via SMS
+              {/* <button onClick={() => setShowSmsCard(true)} className="btn orange">
+                Get Crop Info via SMS
+              </button> */}
+              <button onClick={() => setShowAboutDev(true)} className="btn" style={{ marginLeft: 8 , background: "#eee", color: "#333" }}>
+                About Developers
               </button>
               <button onClick={handleLogout} className="btn" style={{ background: "#eee", color: "#333" }}>
                 ⎋ Logout
@@ -838,6 +900,73 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* About Developers Modal */}
+        <AnimatePresence>
+          {showAboutDev && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0,0,0,0.6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 999,
+              }}
+            >
+              <div
+                style={{
+                  background: "#fff",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  width: "90%",
+                  maxWidth: "700px",
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.2)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h3 style={{ margin: 0 }}>About Developers</h3>
+                  <button onClick={() => setShowAboutDev(false)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer" }}>✕</button>
+                </div>
+
+                <div style={{ marginBottom: 8, color: "#333" }}>
+                  <strong>Company:</strong> CircuitoClaro Solutions Pvt. Ltd.
+                </div>
+
+                <div style={{ display: "flex", gap: 16 }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <img src="" alt="Dev 1" style={{ width: 80, height: 80, borderRadius: 8, objectFit: "cover" }} />
+                    <div>
+                      <div style={{ fontWeight: 700 }}>Nikhil Rajesh Golait</div>
+                      <div style={{ color: "#555", fontSize: 14 }}>Software Developer, CircuitoClaro Solutions Pvt. Ltd.</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <img src="https://via.placeholder.com/100?text=Dev+2" alt="Dev 2" style={{ width: 80, height: 80, borderRadius: 8, objectFit: "cover" }} />
+                    <div>
+                      <div style={{ fontWeight: 700 }}>Vedant Bhendkar</div>
+                      <div style={{ color: "#555", fontSize: 14 }}>Founder & Director, CircuitoClaro Solutions Pvt. Ltd.</div>
+                    </div>
+                  </div>
+                </div>
+
+
+
+                <div style={{ marginTop: 14, textAlign: "right" }}>
+                  <button onClick={() => setShowAboutDev(false)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#2d9442", color: "#fff", cursor: "pointer" }}>Close</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {error && <div className="error-box">{error}</div>}
 
         <main className="main-grid">
@@ -913,40 +1042,36 @@ export default function App() {
               )}
             </div>
 
-            <div className="card mt-4">
-              <h3 className="card-title">🌾 Suitable Crops</h3>
-              {location.isValid && suitableCrops.length ? (
-                <ul className="crop-list">
-                  {suitableCrops.map((crop, i) => (
-                    <li key={i} className="crop-item">
-                      {crop}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>N/A</p>
-              )}
-            </div>
+              <div className="card mt-4">
+                <h3 className="card-title">Field Sensors (Real-time)</h3>
+                <div className="stats-grid">
+                  <StatCard title="Soil Moisture" value={soilMoisture} unit="%" emoji="💧" />
+                  <StatCard title="Soil pH" value={soilPH} unit="" emoji="🧪" />
+                  <StatCard title="Wind" value={wind} unit="m/s" emoji="🌬️" />
+                </div>
+              </div>
 
             <div className="card mt-4">
-              <h3 className="card-title">🧪 Fertilizers & Pesticides</h3>
-              {location.isValid && fertilizerInfo.length ? (
-                <div className="fertilizer-list">
-                  {fertilizerInfo.map((item, i) => (
-                    <div key={i} className="fertilizer-item">
-                      <h4>{item.crop}</h4>
-                      <p>
-                        <strong>Fertilizers:</strong> {item.fertilizers.join(", ")}
-                      </p>
-                      <p>
-                        <strong>Pesticides:</strong> {item.pesticides.join(", ")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>N/A</p>
-              )}
+              <h3 className="card-title">Market Price Trend Analysis for Oranges</h3>
+              <div style={{ height: 160 }}>
+                {priceData && priceData.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={priceData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="price" stroke="#ff7a18" strokeWidth={2} dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p>N/A</p>
+                )}
+              </div>
+              <div style={{ marginTop: 10, color: "#444" }}>
+                <strong>Latest Price:</strong>{' '}
+                {priceData.at(-1)?.price ? `${priceData.at(-1).price} ₹/kg` : 'N/A'}
+              </div>
             </div>
           </aside>
         </main>
