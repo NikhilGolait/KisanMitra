@@ -458,7 +458,7 @@ export default function App() {
         setFertilizerInfo([]);
         // Notification with 2-minute delay
         setTimeout(() => {
-          sendNotification("🚫 Invalid Area", "Not a farming zone. Showing N/A data.");
+          sendNotification("Invalid Area", "Not a farming zone. Showing N/A data.");
         }, 120000);
       } else {
         await fetchWeather(newLoc.lat, newLoc.lon, newLoc.name);
@@ -574,9 +574,12 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, cropInfo }),
+        
       });
       const result = await res.json();
+
       if (result.success) {
+
         alert("✅ SMS sent successfully!");
         setShowSmsCard(false);
         setPhone("");
